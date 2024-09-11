@@ -1,0 +1,66 @@
+services:
+  wekandb:
+    image: mongo:6
+    container_name: wekan-db
+    restart: always
+
+    command: mongod --logpath /dev/null --oplogSize 128 --quiet
+    networks:
+      - app_network
+      - traefik_public
+    expose:
+      - 27017
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - wekan-db:/data/db
+      - wekan-db-dump:/dump
+
+  wekan:
+    image: ghcr.io/wekan/wekan:latest
+    container_name: wekan
+    restart: always
+    networks:
+      - app_network
+    # ports:
+    #   - 80:8080
+    environment:
+      - WRITABLE_PATH=/data
+      - MONGO_URL=mongodb://wekandb:27017/wekan
+      - ROOT_URL=https://wekan.local.meusite.com
+      - WITH_API=true
+      - RICHER_CARD_COMMENT_EDITOR=false
+      - CARD_OPENED_WEBHOOK_ENABLED=false
+      - BIGEVENTS_PATTERN=NONE
+      - BROWSER_POLICY_ENABLED=true
+
+    depends_on:
+      - wekandb
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - wekan-files:/data:rw
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.wekan.entrypoints=http"
+      - "traefik.http.routers.wekan.rule=Host(`wekan.local.meusite.com`)"
+      - "traefik.http.middlewares.wekan-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.wekan.middlewares=wekan-https-redirect"
+      - "traefik.http.routers.wekan-secure.entrypoints=https"
+      - "traefik.http.routers.wekan-secure.rule=Host(`wekan.local.meusite.com`)"
+      - "traefik.http.routers.wekan-secure.tls=true"
+      - "traefik.http.routers.wekan-secure.service=wekan"
+      - "traefik.http.services.wekan.loadbalancer.server.port=80"
+      - "traefik.docker.network=traefik_public"
+
+volumes:
+  wekan-files:
+    driver: local
+  wekan-db:
+    driver: local
+  wekan-db-dump:
+    driver: local
+
+networks:
+  app_network:
+    external: true
+  traefik_public:
+    external: true

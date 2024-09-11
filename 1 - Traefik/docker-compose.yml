@@ -1,0 +1,50 @@
+services:
+  traefik:
+    image: traefik:latest
+    container_name: traefik
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - traefik_public
+      - cftunnel
+    ports:
+      - 80:80
+      - 443:443
+
+    environment:
+      - CF_DNS_API_TOKEN=8rew8rwe8rewer8rew8rew8rwe8ewrwer
+      - "DNS_SERVERS=192.168.0.8"
+
+      # If you choose to use an API Key instead of a Token, specify your email as well
+      # - CF_API_EMAIL=emailreal@.com
+      # - CF_API_KEY=8rew8rwe8rewer8rew8rew8rwe8ewrwer
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./data/traefik.yml:/traefik.yml:ro
+      - ./data/acme.json:/acme.json
+      - ./data/config.yml:/config.yml:ro
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.entrypoints=http"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.local.meusite.com`)"
+      - "traefik.http.middlewares.traefik-auth.basicauth.users=user:$445354345545345ugufdgudgufdg"
+      - "traefik.http.middlewares.traefik-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.sslheader.headers.customrequestheaders.X-Forwarded-Proto=https"
+      - "traefik.http.routers.traefik.middlewares=traefik-https-redirect"
+      - "traefik.http.routers.traefik-secure.entrypoints=https"
+      - "traefik.http.routers.traefik-secure.rule=Host(`traefik.local.meusite.com`)"
+      - "traefik.http.routers.traefik-secure.middlewares=traefik-auth"
+      - "traefik.http.routers.traefik-secure.tls=true"
+      - "traefik.http.routers.traefik-secure.tls.certresolver=cloudflare"
+      - "traefik.http.routers.traefik-secure.tls.domains[0].main=local.meusite.com"
+      - "traefik.http.routers.traefik-secure.tls.domains[0].sans=*.local.meusite.com"
+      - "traefik.http.routers.traefik-secure.service=api@internal"
+
+networks:
+  traefik_public:
+    external: true
+  cftunnel:
+    external: true

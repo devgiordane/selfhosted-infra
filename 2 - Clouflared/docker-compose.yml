@@ -1,0 +1,22 @@
+version: "3.9"
+
+networks:
+  cftunnel:
+    external: true
+  app_network:
+    external: true
+  traefik_public:
+    external: true
+
+services:
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN= # Enter your tunnel token here
+      - TUNNEL_LOGLEVEL=debug
+    networks:
+      - cftunnel
+      - app_network
+      - traefik_public
